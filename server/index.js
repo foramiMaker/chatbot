@@ -235,12 +235,18 @@ io.use((socket, next) => {
 // Socket.IO connection logic
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.user.email}`); // Now you have access to user data
-
+  // Send the username to the connected client
+  socket.emit("userDetails", {
+    username: socket.user.name || socket.user.email,
+  });
   // Listen for messages from the client
   socket.on("message", (message) => {
     console.log("Received query:", message);
     // Broadcast the message to all connected clients except the sender
-    socket.broadcast.emit("received query", message);
+    socket.broadcast.emit("received query", {
+      text: message,
+      username: socket.user.name || socket.user.email,
+    });
   });
 
   // Handle client disconnection
