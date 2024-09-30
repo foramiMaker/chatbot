@@ -40,10 +40,10 @@ function Chatbox() {
     });
 
     // Listen for received messages from other clients
-    socketInstance.on("received query", (messageData) => {
+    socketInstance.on("received query", (message) => {
       setMessages((prevMessages) => [
         ...prevMessages,
-        { text: `${messageData.username}: ${messageData.text}`, isUser: false },
+        { text: `${message.username}: ${message.text}`, isUser: false },
       ]);
     });
 
@@ -57,6 +57,7 @@ function Chatbox() {
     if (input.trim() && socket) {
       // Check if the socket is connected
       if (socket.connected) {
+        const message = { text: input, username: userName };
         // Add user message to the messages state
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -66,7 +67,7 @@ function Chatbox() {
         setInput("");
 
         // Send the message to the server
-        socket.emit("message", input);
+        socket.emit("message", message);
       } else {
         console.error("Socket.IO is not connected.");
       }
@@ -83,7 +84,7 @@ function Chatbox() {
     <Container className="mt-5" style={{ maxWidth: "400px" }}>
       <Card>
         <Card.Header className="bg-primary text-white text-center">
-          Chatbot {userName}
+          Chatbot ({userName})
         </Card.Header>
         <Card.Body style={{ height: "200px", overflowY: "auto" }}>
           <div>

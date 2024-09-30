@@ -244,8 +244,8 @@ io.on("connection", (socket) => {
     console.log("Received query:", message);
     // Broadcast the message to all connected clients except the sender
     socket.broadcast.emit("received query", {
-      text: message,
-      username: socket.user.name || socket.user.email,
+      text: message.text,
+      username: message.username,
     });
   });
 
