@@ -198,6 +198,7 @@ const server = http.createServer(app);
 const UserDetail = require("./db/user");
 const Product = require("./db/product");
 const { Orders, Products } = require("./db/orders");
+const Booking = require("./db/booking.model");
 require("./config");
 const cors = require("cors");
 const product = require("./db/product");
@@ -208,6 +209,13 @@ app.use(express.json());
 app.use(cors());
 
 // dotenv.config();
+
+const Razorpay = require("razorpay");
+
+const instance = new Razorpay({
+  key_id: "rzp_test_ekV0HR5il0Avnp", // replace with your Razorpay key id
+  key_secret: "rPPqnXyVxl8lMuBhkzSpGtQD", // replace with your Razorpay key secret
+});
 
 // Initialize Socket.IO server on the existing HTTP server
 // Initialize Socket.IO server on the existing HTTP server
@@ -255,6 +263,51 @@ io.on("connection", (socket) => {
   });
 });
 
+// Socket.IO connection logic
+
+//online offline status logic
+// Store connected users' status
+// const onlineUsers = new Map();
+
+// // Handle Socket.IO connections
+// io.on("connection", (socket) => {
+//   console.log(`User connected: ${socket.user.email}`);
+
+//   // Update user status to online
+//   onlineUsers.set(socket.user._id, true);
+
+//   // Broadcast the status update to all clients
+//   io.emit("userStatusUpdate", { userId: socket.user._id, isStatus: true });
+
+//   // Notify the newly connected client of the current status of all users
+//   socket.emit("userStatusUpdate", Array.from(onlineUsers.entries()).map(([userId, isStatus]) => ({ userId, isStatus })));
+
+//   // Listen for messages from the client
+//   socket.on("message", (message) => {
+//     console.log("Received message:", message);
+
+//     // Broadcast the message to all connected clients except the sender
+//     socket.broadcast.emit("received query", {
+//       text: message.text,
+//       username: message.username,
+//     });
+
+//     // Broadcast status update to all clients
+//     io.emit("userStatusUpdate", { userId: socket.user._id, isStatus: true });
+//   });
+
+//   // Handle client disconnection
+//   socket.on("disconnect", () => {
+//     console.log(`User disconnected: ${socket.user.email}`);
+
+//     // Update user status to offline
+//     onlineUsers.set(socket.user._id, false);
+
+//     // Broadcast the status update to all clients
+//     io.emit("userStatusUpdate", { userId: socket.user._id, isStatus: false });
+//   });
+// });
+
 // Function to validate the JWT token
 function validateToken(token) {
   try {
@@ -274,6 +327,44 @@ app.get("/", async (req, res) => {
   res.send(data);
 });
 
+//getbookingbydate
+app.get("/bookings", async (req, res) => {
+  try {
+    const { date } = req.query;
+    const bookings = await Booking.find({ date });
+    res.status(200).json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.get("/bookingdetails", async (req, res) => {
+  try {
+    const detail = await Booking.find({});
+    res.status(200).json(detail);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+//for payment integration api
+app.post("/createOrder", async (req, res) => {
+  try {
+    const { amount, currency } = req.body;
+
+    const options = {
+      amount: amount * 100, // Amount in paise (e.g., Rs 500 should be passed as 50000)
+      currency,
+      receipt: `receipt_${Math.floor(Math.random() * 1000000)}`, // Unique receipt id
+    };
+
+    const order = await instance.orders.create(options);
+    res.status(200).json({ orderId: order.id });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 app.post("/create", async (req, res) => {
   // res.send("api run");
   try {
@@ -291,6 +382,51 @@ app.post("/create", async (req, res) => {
     if (err.name === "ValidationError" || err.password === "validationeroor") {
       return res.status(400).json({ error: "enter correct emailid" });
     }
+  }
+});
+
+//booking slot
+app.post("/booking", async (req, res) => {
+  try {
+    let { name, email, mobile, date, slot, amount } = req.body;
+
+    // Convert the date to YYYY-MM-DD format
+    const parsedDate = new Date(date);
+    const formattedDate = new Date(
+      Date.UTC(
+        parsedDate.getUTCFullYear(),
+        parsedDate.getUTCMonth(),
+        parsedDate.getUTCDate()
+      )
+    )
+      .toISOString()
+      .split("T")[0];
+    // const formattedDate = new Date(
+    //   (parsedDate.getUTCFullYear(),
+    //   parsedDate.getUTCMonth(),
+    //   parsedDate.getUTCDate())
+    // );
+    // Check if the slot is already booked for the given date
+    const existingBooking = await Booking.findOne({
+      date: formattedDate,
+      slot,
+    });
+    if (existingBooking) {
+      return res.status(400).json({ message: "This slot is already booked" });
+    }
+
+    const booking = await Booking.create({
+      name,
+      email,
+      mobile,
+      date: formattedDate,
+      slot,
+      amount,
+      isSlot: true,
+    });
+    res.status(200).json(booking);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

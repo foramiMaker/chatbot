@@ -5,10 +5,15 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import Modal from "react-bootstrap/Modal";
 import Chatbox from "../components/chat";
+import Calender from "../components/Calender";
+import BookingDetail from "../components/BookingDetail";
 
 const ProductList = () => {
   const [product, setProduct] = useState([]);
   const [showChatBox, setShowChatBox] = useState(false);
+  const [showDatepicker, setShowDatepicker] = useState(false);
+  const [showBookingDetail, setShowBookingDetail] = useState(false);
+
   const getToken = () => {
     return localStorage.getItem("token");
   };
@@ -18,8 +23,18 @@ const ProductList = () => {
     setShowChatBox(true);
   };
 
+  const handleBookingClick = () => {
+    setShowDatepicker(true);
+  };
+
+  const handleBookingDetailClick = () => {
+    setShowBookingDetail(true); // Toggle BookingDetail visibility
+  };
+
   const handleClose = () => {
     setShowChatBox(false);
+    setShowDatepicker(false);
+    setShowBookingDetail(false);
   };
 
   const handleDelete = async (id) => {
@@ -93,9 +108,27 @@ const ProductList = () => {
           placeholder="Seach here"
           onChange={handleSearch}
         />
-        <Button variant="primary" onClick={handleChatbox} className="">
-          Chatbox
-        </Button>
+        <div className="booking-btn">
+          <Button
+            variant="primary"
+            onClick={handleBookingClick}
+            className=""
+            style={{ marginRight: "10px" }}
+          >
+            Booking
+          </Button>
+          <Button
+            variant="primary"
+            className=""
+            onClick={handleBookingDetailClick}
+            style={{ marginRight: "10px" }}
+          >
+            Booking Detail
+          </Button>
+          <Button variant="primary" onClick={handleChatbox} className="">
+            Chatbox
+          </Button>
+        </div>
       </div>
       {/* chat box */}
       <Modal show={showChatBox} onHide={handleClose}>
@@ -104,6 +137,26 @@ const ProductList = () => {
         </Modal.Header>
         <Modal.Body>
           <Chatbox Token={Token} handleClose={handleClose} />
+        </Modal.Body>
+      </Modal>
+
+      {/* calender component */}
+      <Modal show={showDatepicker} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>calender Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Calender handleClose={handleClose} />
+        </Modal.Body>
+      </Modal>
+
+      {/* Booking Detail Modal */}
+      <Modal show={showBookingDetail} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Booking Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <BookingDetail handleClose={handleClose} />
         </Modal.Body>
       </Modal>
 

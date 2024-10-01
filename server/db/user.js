@@ -17,6 +17,10 @@ const userdetailSchema = new mongoose.Schema({
     },
   },
   password: { type: String, require: true, minlength: 10 },
+  isStatus: {
+    type: Boolean,
+    default: false, // false for offline, true for online
+  },
 });
 
 module.exports = mongoose.model("userdetail", userdetailSchema);
