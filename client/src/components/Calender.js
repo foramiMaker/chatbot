@@ -121,6 +121,11 @@ function Calender({ handleClose }) {
         {
           amount: amount, // Specify the amount to be charged (replace with your logic)
           currency: "INR",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // Send the JWT token
+          },
         }
       );
 
@@ -136,18 +141,28 @@ function Calender({ handleClose }) {
         handler: async function (response) {
           // Handle successful payment here
           try {
+            const userId = JSON.parse(localStorage.getItem("user"))._id;
             const bookingData = {
               ...formData,
               date: startDate.toDateString(),
               slot: selectedSlot,
               paymentId: response.razorpay_payment_id, // Save payment ID for reference
+              userId,
             };
 
             const bookingResponse = await axios.post(
               `http://localhost:5000/booking`,
-              bookingData
+              bookingData,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`, // Send the JWT token
+                },
+              }
             );
-
+            console.log("Headers Sent:", {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            });
+            console.log("Booking Data Sent to API:", bookingData);
             if (bookingResponse.data) {
               alert("Booking successfully!");
               setBookedSlots((prev) => [...prev, selectedSlot]); // Add slot to booked slots

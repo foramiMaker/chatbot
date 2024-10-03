@@ -204,9 +204,15 @@ const cors = require("cors");
 const product = require("./db/product");
 const jwt = require("jsonwebtoken");
 const jwtkey = "ecomm";
+// const authenticateToken = require("./middleware/authenticateToken");
 // PORT = process.env || 5000;
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // Frontend origin
+    allowedHeaders: ["Authorization", "Content-Type"], // Allow authorization header
+  })
+);
 
 // dotenv.config();
 
@@ -386,7 +392,7 @@ app.post("/create", async (req, res) => {
 });
 
 //booking slot
-app.post("/booking", async (req, res) => {
+app.post("/booking", authenticateToken, async (req, res) => {
   try {
     let { name, email, mobile, date, slot, amount } = req.body;
 
@@ -415,6 +421,9 @@ app.post("/booking", async (req, res) => {
       return res.status(400).json({ message: "This slot is already booked" });
     }
 
+    // Retrieve the authenticated user's ID from the JWT
+    const userId = req.user.user._id;
+
     const booking = await Booking.create({
       name,
       email,
@@ -423,6 +432,7 @@ app.post("/booking", async (req, res) => {
       slot,
       amount,
       isSlot: true,
+      userId: userId, // Store the user ID in the booking
     });
     res.status(200).json(booking);
   } catch (error) {
@@ -535,14 +545,18 @@ app.get("/orderdetails", async (req, res) => {
 });
 
 function authenticateToken(req, res, next) {
-  const token = req.headers["authorization"];
+  const token = req.headers["authorization"]?.split(" ")[1];
+  // const token = req.headers["authorization"];
   if (token) {
     console.log("middleware", [token]); // Log the token in array format
 
     // Verify the token using jwt
-    jwt.verify(token, jwtkey, () => {
+    jwt.verify(token, jwtkey, (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ message: "Invalid or expired token" });
+      }
       // Token is valid, proceed to the next middleware
-      // req.user = user;
+      req.user = decoded;
       next();
     });
   } else {
