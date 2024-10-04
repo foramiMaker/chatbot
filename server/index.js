@@ -197,14 +197,14 @@ const socketIo = require("socket.io");
 const server = http.createServer(app);
 const UserDetail = require("./db/user");
 const Product = require("./db/product");
-const { Orders, Products } = require("./db/orders");
+// const { Orders, Products } = require("./db/orders");
 const Booking = require("./db/booking.model");
 require("./config");
 const cors = require("cors");
-const product = require("./db/product");
+
 const jwt = require("jsonwebtoken");
-const jwtkey = "ecomm";
-// const authenticateToken = require("./middleware/authenticateToken");
+// const jwtkey = "ecomm";
+const authenticateToken = require("./middleware/authenticateToken");
 // PORT = process.env || 5000;
 app.use(express.json());
 app.use(
@@ -378,7 +378,7 @@ app.post("/create", async (req, res) => {
     console.log(data);
     data = data.toObject();
     delete data.password;
-    const token = jwt.sign({ data }, "jwtkey", {
+    const token = jwt.sign({ data }, process.env.JWT_SECRET_KEY, {
       expiresIn: "1h",
     });
 
@@ -422,7 +422,7 @@ app.post("/booking", authenticateToken, async (req, res) => {
     }
 
     // Retrieve the authenticated user's ID from the JWT
-    const userId = req.user.user._id;
+    const userId = req.user._id;
 
     const booking = await Booking.create({
       name,
@@ -448,13 +448,20 @@ app.post("/addProduct", authenticateToken, async (req, res) => {
     console.log(err.message);
   }
 });
-//get product list
+// get product list
 app.get("/fetchproduct", authenticateToken, async (req, res) => {
-  const product = await Product.find();
-  if (product.length > 0) {
-    res.json(product);
-  } else {
-    res.json({ response: "no data found" });
+  try {
+    const userId = req.user._id; // Extract user ID from the token
+    console.log("User ID from token:", userId);
+    const product = await Product.find({ userId }); // Find products by logged-in user's ID
+    console.log("Products found:", product); // Log found products
+    if (product.length > 0) {
+      res.json(product);
+    } else {
+      res.json({ response: "no data found" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 app.post("/login", async (req, res) => {
@@ -544,25 +551,25 @@ app.get("/orderdetails", async (req, res) => {
   }
 });
 
-function authenticateToken(req, res, next) {
-  const token = req.headers["authorization"]?.split(" ")[1];
-  // const token = req.headers["authorization"];
-  if (token) {
-    console.log("middleware", [token]); // Log the token in array format
+// function authenticateToken(req, res, next) {
+//   const token = req.headers["authorization"]?.split(" ")[1];
+//   // const token = req.headers["authorization"];
+//   if (token) {
+//     console.log("middleware", [token]); // Log the token in array format
 
-    // Verify the token using jwt
-    jwt.verify(token, jwtkey, (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ message: "Invalid or expired token" });
-      }
-      // Token is valid, proceed to the next middleware
-      req.user = decoded;
-      next();
-    });
-  } else {
-    return res.status(403).json({ error: "Token not provided" });
-  }
-}
+//     // Verify the token using jwt
+//     jwt.verify(token, jwtkey, (err, decoded) => {
+//       if (err) {
+//         return res.status(401).json({ message: "Invalid or expired token" });
+//       }
+//       // Token is valid, proceed to the next middleware
+//       req.user = decoded;
+//       next();
+//     });
+//   } else {
+//     return res.status(403).json({ error: "Token not provided" });
+//   }
+// }
 
 server.listen(5000, () => {
   console.log("Server is running on port 5000");

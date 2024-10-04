@@ -9,8 +9,9 @@ const ProductSchema = new mongoose.Schema({
     require: true,
   },
   category: { type: String },
-  userId: { type: String },
+  // userId: { type: String },
+  userId: { type: mongoose.Schema.Types.ObjectId },
   company: { type: String },
 });
 
-module.exports = mongoose.model("products", ProductSchema);
+module.exports = mongoose.model("product", ProductSchema);

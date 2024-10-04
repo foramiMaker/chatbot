@@ -33,10 +33,10 @@ const BookingScema = mongoose.Schema(
       type: Boolean,
       default: false, // Default value is false
     },
-    // userId: { type: mongoose.Schema.Types.ObjectId, ref: "userdetail" }, // Correctly reference the user model
-    userId: {
-      type: String,
-    },
+    userId: { type: mongoose.Schema.Types.ObjectId }, // Correctly reference the user model
+    // userId: {
+    //   type: String,
+    // },
   },
   {
     timestamps: true,

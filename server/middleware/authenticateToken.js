@@ -1,19 +1,36 @@
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
+// function authenticateToken(req, res, next) {
+//   const token = req.headers["authorization"]?.split(" ")[1];
+//   // const token = req.headers["authorization"];
+//   if (token) {
+//     console.log("middleware", [token]); // Log the token in array format
+
+//     // Verify the token using jwt
+//     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
+//       if (err) {
+//         return res.status(401).json({ message: "Invalid or expired token" });
+//       }
+//       // Token is valid, proceed to the next middleware
+//       req.user = decoded;
+//       next();
+//     });
+//   } else {
+//     return res.status(403).json({ error: "Token not provided" });
+//   }
+// }
 const authenticateToken = (req, res, next) => {
-  const token = req.header("Authorization")?.split(" ")[1]; // Extract token from Authorization header
-  if (!token) {
-    return res
-      .status(403)
-      .json({ message: "Access denied, no token provided" });
-  }
+  const token =
+    req.header("Authorization") && req.header("Authorization").split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Access Denied" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || "ecomm"); // Replace with your secret key
-    req.user = decoded; // Attach decoded user to request object
+    const verified = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.user = verified.user; // Ensure this contains the correct _id
     next();
   } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
+    res.status(400).json({ error: "Invalid Token" });
   }
 };
 
