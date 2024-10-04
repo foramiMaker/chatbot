@@ -82,7 +82,7 @@ const ProductList = () => {
           Authorization: `Bearer ${Token}`, // Assuming it's a Bearer token
         },
       });
-      if (response.data) {
+      if (Array.isArray(response.data)) {
         setProduct(response.data);
       } else {
         console.error("Fetch response data is not an array:", response.data);

@@ -72,7 +72,7 @@ function Calender({ handleClose }) {
 
   const handleSlotBooking = (slot) => {
     if (bookedSlots.includes(slot)) {
-      // alert(`The slot "${slot}" is already booked!`);
+      alert(`The slot "${slot}" is already booked!`);
       return;
     }
 
@@ -209,7 +209,12 @@ function Calender({ handleClose }) {
                 variant="outline-primary"
                 style={{
                   margin: "5px",
-                  backgroundColor: bookedSlots.includes(slot) ? "#ccc" : "",
+                  backgroundColor: bookedSlots.includes(slot)
+                    ? "#ccc"
+                    : selectedSlot === slot
+                    ? "#3399cc" // Highlight selected slot with a color
+                    : "",
+                  color: selectedSlot === slot ? "#fff" : "",
                   cursor: bookedSlots.includes(slot)
                     ? "not-allowed"
                     : "pointer",
