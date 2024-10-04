@@ -7,12 +7,15 @@ import Modal from "react-bootstrap/Modal";
 import Chatbox from "../components/chat";
 import Calender from "../components/Calender";
 import BookingDetail from "../components/BookingDetail";
+import Form from "react-bootstrap/Form";
+import { Download } from "react-bootstrap-icons";
 
 const ProductList = () => {
   const [product, setProduct] = useState([]);
   const [showChatBox, setShowChatBox] = useState(false);
   const [showDatepicker, setShowDatepicker] = useState(false);
   const [showBookingDetail, setShowBookingDetail] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
 
   const getToken = () => {
     return localStorage.getItem("token");
@@ -35,6 +38,72 @@ const ProductList = () => {
     setShowChatBox(false);
     setShowDatepicker(false);
     setShowBookingDetail(false);
+  };
+
+  const handleImportCsv = async () => {
+    if (!csvFile) {
+      alert("Please select a CSV file");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", csvFile);
+
+    try {
+      
+      const token = localStorage.getItem("token"); 
+      const response = await axios.post(
+        "http://localhost:5000/import",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data.success) {
+        alert("CSV Imported Successfully");
+        getProduct(); // Refresh the data
+      }
+    } catch (error) {
+      console.error("Error importing CSV:", error);
+    }
+  };
+  const handleChange = (e) => {
+    const { files } = e.target;
+    setCsvFile(files[0]);
+  };
+
+  const handleDownload = async () => {
+    try {
+      const token = localStorage.getItem("token"); // Get the token from localStorage
+
+      const response = await axios.get("http://localhost:5000/export", {
+        headers: {
+          Authorization: `Bearer ${token}`, // Add Authorization header with the token
+        },
+        responseType: "blob", // Important: specify responseType as 'blob' to handle binary data
+      });
+
+      // Create a new Blob object using the response data
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link element
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "productsData.csv"); // Name of the file to be downloaded
+      document.body.appendChild(link);
+
+      // Programmatically click the link to trigger the download
+      link.click();
+
+      // Clean up and remove the link element
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading CSV:", error);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -99,7 +168,26 @@ const ProductList = () => {
 
   return (
     <div className="table" style={{ maxHeight: "500px", overflowY: "auto" }}>
-      <h1>Prouct List</h1>
+      <div className="main">
+        {" "}
+        {/* <h1>Prouct List</h1> */}
+        <Form>
+          <input
+            type="file"
+            name="file"
+            className="file-input"
+            onChange={handleChange}
+            accept=".csv"
+          />
+          <Button
+            variant="primary"
+            onClick={handleImportCsv}
+            className="import"
+          >
+            Import
+          </Button>
+        </Form>
+      </div>
 
       <div className="chat-search">
         <input
@@ -109,6 +197,13 @@ const ProductList = () => {
           onChange={handleSearch}
         />
         <div className="booking-btn">
+          <Button
+            variant="primary"
+            className="download_button"
+            onClick={handleDownload}
+          >
+            <Download />
+          </Button>
           <Button
             variant="primary"
             onClick={handleBookingClick}
@@ -130,6 +225,7 @@ const ProductList = () => {
           </Button>
         </div>
       </div>
+
       {/* chat box */}
       <Modal show={showChatBox} onHide={handleClose}>
         <Modal.Header closeButton>

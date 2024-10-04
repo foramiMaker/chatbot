@@ -48,8 +48,8 @@
   margin: 0 10px;
 }
 .search {
-  /* margin-left:10px ; */
-  width: 30%;
+  margin-left: 10px;
+  width: 20%;
 }
 .chat-search {
   display: flex;
@@ -60,6 +60,13 @@
 .booking-btn {
   display: flex;
   margin: 0 auto;
+}
+.file-input {
+  margin: 10px;
+  margin-left: 5px;
+}
+.download_button {
+  margin-right: 5px;
 }
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {

@@ -1,194 +1,3 @@
-// const express = require("express");
-// const app = express();
-// const http = require("http");
-// const socketIo = require("socket.io");
-// const server = http.createServer(app);
-// const UserDetail = require("./db/user");
-// const Product = require("./db/product");
-// const { Orders, Products } = require("./db/orders");
-// require("./config");
-// const cors = require("cors");
-// const product = require("./db/product");
-// const jwt = require("jsonwebtoken");
-// const jwtkey = "ecomm";
-// // PORT = process.env || 5000;
-// app.use(express.json());
-// app.use(cors());
-
-// // Initialize Socket.IO server on the existing HTTP server
-// const io = socketIo(server, {
-//   cors: {
-//     origin: "http://localhost:3000", // Adjust this to your frontend's URL
-//     methods: ["GET", "POST"],
-//   },
-// });
-
-// // Socket.IO connection logic
-// io.on("connection", (socket) => {
-//   console.log(`Client connected ${socket.id}`);
-
-//   // Listen for messages from the client
-//   socket.on("message", (message) => {
-//     console.log("Received query:", message);
-//     socket.broadcast.emit("received query", message);
-//   });
-
-//   // Handle client disconnection
-//   socket.on("disconnect", (reason) => {
-//     console.log(`Client disconnected with reason: ${reason}`);
-//   });
-// });
-
-// app.get("/", async (req, res) => {
-//   // res.send("api run");
-//   const data = await UserDetail.find({});
-//   console.log(data);
-//   res.send(data);
-// });
-
-// app.post("/create", async (req, res) => {
-//   // res.send("api run");
-//   try {
-//     let data = await UserDetail.create(req.body);
-//     console.log(data);
-//     data = data.toObject();
-//     delete data.password;
-//     const token = jwt.sign({ data }, "jwtkey", {
-//       expiresIn: "1h",
-//     });
-
-//     res.send({ data, token });
-//   } catch (err) {
-//     console.log(err.message);
-//     if (err.name === "ValidationError" || err.password === "validationeroor") {
-//       return res.status(400).json({ error: "enter correct emailid" });
-//     }
-//   }
-// });
-
-// app.post("/addProduct", authenticateToken, async (req, res) => {
-//   try {
-//     const response = await Product.create(req.body);
-//     res.json(response);
-//   } catch (err) {
-//     console.log(err.message);
-//   }
-// });
-// //get product list
-// app.get("/fetchproduct", authenticateToken, async (req, res) => {
-//   const product = await Product.find();
-//   if (product.length > 0) {
-//     res.json(product);
-//   } else {
-//     res.json({ response: "no data found" });
-//   }
-// });
-// app.post("/login", async (req, res) => {
-//   try {
-//     if (req.body.password && req.body.email) {
-//       const user = await UserDetail.findOne(req.body).select("-password");
-//       if (user) {
-//         const token = jwt.sign({ user }, "jwtkey", {
-//           expiresIn: "1h",
-//         });
-//         res.json({ user, token });
-//       } else {
-//         res.status(404).json({ result: "no user found" });
-//       }
-//     } else {
-//       res.status(404).json({ result: "no user found" });
-//     }
-//   } catch (err) {
-//     console.log(err.message);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// });
-// //delete product
-// app.delete("/Delete/:id", authenticateToken, async (req, res) => {
-//   const { id } = req.params;
-//   const product = await Product.findByIdAndDelete(id);
-//   console.log("delete data");
-//   return res.json({ product: "delete" });
-// });
-
-// //get single product
-// app.get("/product/:id", authenticateToken, async (req, res) => {
-//   const { id } = req.params;
-//   const product = await Product.findOne({ _id: id });
-//   if (product) {
-//     res.json(product);
-//   } else {
-//     res.json({ response: "no product found" });
-//   }
-// });
-
-// //update product
-// app.put("/product/:id", authenticateToken, async (req, res) => {
-//   const { id } = req.params;
-//   const product = await Product.findByIdAndUpdate(id, req.body);
-//   return res.json({ product });
-// });
-
-// //search product
-// app.get("/search/:key", authenticateToken, async (req, res) => {
-//   const product = await Product.find({
-//     $or: [
-//       { name: { $regex: req.params.key } },
-//       { prise: { $regex: req.params.key } },
-//       { category: { $regex: req.params.key } },
-//       { company: { $regex: req.params.key } },
-//     ],
-//   });
-//   return res.json({ product });
-// });
-
-// app.get("/orderdetails", async (req, res) => {
-//   try {
-//     const orderDetails = await Orders.aggregate([
-//       {
-//         $lookup: {
-//           from: "products", // Collection name (must be plural)
-//           localField: "product_id", // Field in Orders collection
-//           foreignField: "id", // Field in Products collection
-//           as: "product_details", // Output array field
-//         },
-//       },
-//       {
-//         $unwind: "$product_details", // Unwind the product details array
-//       },
-//     ]);
-
-//     // Check if any order details were found
-//     if (orderDetails) {
-//       res.json(orderDetails);
-//     } else {
-//       res.status(404).json({ message: "No order details found" });
-//     }
-//   } catch (err) {
-//     console.log(err.message);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// });
-
-// function authenticateToken(req, res, next) {
-//   const token = req.headers["authorization"];
-//   if (token) {
-//     console.log("middleware", [token]); // Log the token in array format
-
-//     // Verify the token using jwt
-//     jwt.verify(token, jwtkey, () => {
-//       // Token is valid, proceed to the next middleware
-//       // req.user = user;
-//       next();
-//     });
-//   } else {
-//     return res.status(403).json({ error: "Token not provided" });
-//   }
-// }
-
-// server.listen(5000, () => {
-//   console.log("Server is running on port 5000");
-// });
 require("dotenv").config();
 const express = require("express");
 const app = express();
@@ -201,12 +10,26 @@ const Product = require("./db/product");
 const Booking = require("./db/booking.model");
 require("./config");
 const cors = require("cors");
-
+const csv = require("csvtojson");
+const CsvParser = require("json2csv").Parser;
 const jwt = require("jsonwebtoken");
 // const jwtkey = "ecomm";
 const authenticateToken = require("./middleware/authenticateToken");
+const multer = require("multer");
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./public/uploads");
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+const upload = multer({ storage: storage });
 // PORT = process.env || 5000;
 app.use(express.json());
+app.use(express.static(path.resolve(__dirname, "public")));
 app.use(
   cors({
     origin: "http://localhost:3000", // Frontend origin
@@ -223,7 +46,6 @@ const instance = new Razorpay({
   key_secret: "rPPqnXyVxl8lMuBhkzSpGtQD", // replace with your Razorpay key secret
 });
 
-// Initialize Socket.IO server on the existing HTTP server
 // Initialize Socket.IO server on the existing HTTP server
 const io = socketIo(server, {
   cors: {
@@ -268,51 +90,6 @@ io.on("connection", (socket) => {
     console.log(`Client disconnected with reason: ${reason}`);
   });
 });
-
-// Socket.IO connection logic
-
-//online offline status logic
-// Store connected users' status
-// const onlineUsers = new Map();
-
-// // Handle Socket.IO connections
-// io.on("connection", (socket) => {
-//   console.log(`User connected: ${socket.user.email}`);
-
-//   // Update user status to online
-//   onlineUsers.set(socket.user._id, true);
-
-//   // Broadcast the status update to all clients
-//   io.emit("userStatusUpdate", { userId: socket.user._id, isStatus: true });
-
-//   // Notify the newly connected client of the current status of all users
-//   socket.emit("userStatusUpdate", Array.from(onlineUsers.entries()).map(([userId, isStatus]) => ({ userId, isStatus })));
-
-//   // Listen for messages from the client
-//   socket.on("message", (message) => {
-//     console.log("Received message:", message);
-
-//     // Broadcast the message to all connected clients except the sender
-//     socket.broadcast.emit("received query", {
-//       text: message.text,
-//       username: message.username,
-//     });
-
-//     // Broadcast status update to all clients
-//     io.emit("userStatusUpdate", { userId: socket.user._id, isStatus: true });
-//   });
-
-//   // Handle client disconnection
-//   socket.on("disconnect", () => {
-//     console.log(`User disconnected: ${socket.user.email}`);
-
-//     // Update user status to offline
-//     onlineUsers.set(socket.user._id, false);
-
-//     // Broadcast the status update to all clients
-//     io.emit("userStatusUpdate", { userId: socket.user._id, isStatus: false });
-//   });
-// });
 
 // Function to validate the JWT token
 function validateToken(token) {
@@ -407,11 +184,7 @@ app.post("/booking", authenticateToken, async (req, res) => {
     )
       .toISOString()
       .split("T")[0];
-    // const formattedDate = new Date(
-    //   (parsedDate.getUTCFullYear(),
-    //   parsedDate.getUTCMonth(),
-    //   parsedDate.getUTCDate())
-    // );
+
     // Check if the slot is already booked for the given date
     const existingBooking = await Booking.findOne({
       date: formattedDate,
@@ -512,7 +285,9 @@ app.put("/product/:id", authenticateToken, async (req, res) => {
 
 //search product
 app.get("/search/:key", authenticateToken, async (req, res) => {
+  const userId = req.user._id;
   const product = await Product.find({
+    userId,
     $or: [
       { name: { $regex: req.params.key } },
       { prise: { $regex: req.params.key } },
@@ -521,6 +296,29 @@ app.get("/search/:key", authenticateToken, async (req, res) => {
     ],
   });
   return res.json({ product });
+});
+
+//import product
+app.post("/import", authenticateToken,upload.single("file"), async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userData = [];
+    csv()
+      .fromFile(req.file.path)
+      .then(async (response) => {
+        for (let x = 0; x < response.length; x++) {
+          userData.push({
+            name: response[x].name,
+            prise: response[x].prise,
+            category: response[x].category,
+            company: response[x].company,
+            userId: userId,
+          });
+        }
+        await Product.insertMany(userData);
+      });
+    res.send({ status: 200, success: true, msg: "Csv Imported" });
+  } catch {}
 });
 
 app.get("/orderdetails", async (req, res) => {
@@ -551,6 +349,31 @@ app.get("/orderdetails", async (req, res) => {
   }
 });
 
+//download product list api
+app.get("/export", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id; // Get the user ID from the token
+    const products = [];
+    const userData = await Product.find({ userId });
+
+    userData.forEach((product) => {
+      const { id, name, prise, category, company } = product;
+      products.push({ id, name, prise, category, company });
+    });
+    const csvFields = ["id", "name", "prise", "category", "company"];
+    const csvParser = new CsvParser({ fields: csvFields });
+    const csvData = csvParser.parse(products);
+
+    res.setHeader("content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment;filename=productsData.csv"
+    );
+    res.status(200).end(csvData);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 // function authenticateToken(req, res, next) {
 //   const token = req.headers["authorization"]?.split(" ")[1];
 //   // const token = req.headers["authorization"];

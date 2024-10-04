@@ -141,13 +141,13 @@ function Calender({ handleClose }) {
         handler: async function (response) {
           // Handle successful payment here
           try {
-            const userId = JSON.parse(localStorage.getItem("user"))._id;
+            // const userId = JSON.parse(localStorage.getItem("user"))._id;
             const bookingData = {
               ...formData,
               date: startDate.toDateString(),
               slot: selectedSlot,
               paymentId: response.razorpay_payment_id, // Save payment ID for reference
-              userId,
+              // userId,
             };
 
             const bookingResponse = await axios.post(
