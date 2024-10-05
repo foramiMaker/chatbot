@@ -3,6 +3,7 @@ import { Col, Form, Row, Button } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { FaGoogle } from "react-icons/fa";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -16,7 +17,27 @@ const Login = () => {
     if (auth) {
       navigate("/");
     }
-  });
+
+    // Check if the user is authenticated after Google OAuth
+    // const checkUserLogin = async () => {
+    //   try {
+    //     const response = await axios.get(
+    //       "http://localhost:5000/login/success",
+    //       {
+    //         withCredentials: true, // Ensure cookies are sent for session-based auth
+    //       }
+    //     );
+    //     if (response.data.success) {
+    //       localStorage.setItem("user", JSON.stringify(response.data.user));
+    //       navigate("/"); // Redirect to homepage after successful login
+    //     }
+    //   } catch (error) {
+    //     console.error("User is not authenticated", error);
+    //   }
+    // };
+
+    // checkUserLogin();
+  }, [navigate]);
 
   const handleChange = (e) =>
     setFormData({ ...formdata, [e.target.name]: e.target.value });
@@ -41,10 +62,15 @@ const Login = () => {
     }
   };
 
+  // Redirect for social login (e.g., Google, Facebook)
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:5000/auth/google";
+  };
+
   return (
-    <div className="login">
-      <h1>Login</h1>
-      <Form>
+    <div className="login" style={{ maxWidth: "400px", margin: "auto" }}>
+      <h1 className="text-center mb-4">Login</h1>
+      <Form onSubmit={handleLogin}>
         <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
           <Col sm="5">
             <Form.Control
@@ -68,9 +94,26 @@ const Login = () => {
             />
           </Col>
         </Form.Group>
-        <Button variant="primary" type="submit" onClick={handleLogin}>
+        <Button
+          variant="primary"
+          type="submit"
+          // onClick={handleLogin}
+        >
           Login
         </Button>
+        <div className="text-center mt-3">
+          <p>or login with</p>
+
+          {/* Social login buttons */}
+          <Button
+            variant="danger"
+            onClick={handleGoogleLogin}
+            className="me-2"
+            style={{ width: "150px" }}
+          >
+            <FaGoogle /> Google
+          </Button>
+        </div>
       </Form>
     </div>
   );

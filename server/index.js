@@ -17,6 +17,10 @@ const jwt = require("jsonwebtoken");
 const authenticateToken = require("./middleware/authenticateToken");
 const multer = require("multer");
 const path = require("path");
+const passport = require("./passport.js");
+const session = require("express-session");
+const cookieSession = require("cookie-session");
+require("./passport");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -28,6 +32,36 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 // PORT = process.env || 5000;
+
+// Initialize express-session middleware
+// app.use(
+//   session({
+//     secret: process.env.SESSION_SECRET, // Use a secret key for session encryption
+//     resave: false, // Avoid resaving session if unmodified
+//     saveUninitialized: false, // Don't save empty sessions
+//     cookie: { secure: false }, // Set `secure: true` if using HTTPS
+//   })
+// );
+
+// app.use(
+//   cookieSession({
+//     name: "session",
+//     keys: ["chatbot"],
+//     maxAge: 24 * 60 * 60 * 100,
+//   })
+// );
+app.use(
+  session({
+    secret: "secret-key",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+// Initialize Passport and use session management
+app.use(passport.initialize());
+app.use(passport.session()); // This line is crucial for handling login sessions
+
 app.use(express.json());
 app.use(express.static(path.resolve(__dirname, "public")));
 app.use(
@@ -36,8 +70,10 @@ app.use(
     allowedHeaders: ["Authorization", "Content-Type"], // Allow authorization header
   })
 );
-
+// app.use(passport.initialize());
 // dotenv.config();
+
+const CLIENT_URL = "http://localhost:3000";
 
 const Razorpay = require("razorpay");
 
@@ -162,9 +198,9 @@ app.post("/create", async (req, res) => {
     res.send({ data, token });
   } catch (err) {
     console.log(err.message);
-    if (err.name === "ValidationError" || err.password === "validationeroor") {
-      return res.status(400).json({ error: "enter correct emailid" });
-    }
+    // if (err.name === "ValidationError" || err.password === "validationeroor") {
+    //   return res.status(400).json({ error: "enter correct emailid" });
+    // }
   }
 });
 
@@ -299,27 +335,32 @@ app.get("/search/:key", authenticateToken, async (req, res) => {
 });
 
 //import product
-app.post("/import", authenticateToken,upload.single("file"), async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const userData = [];
-    csv()
-      .fromFile(req.file.path)
-      .then(async (response) => {
-        for (let x = 0; x < response.length; x++) {
-          userData.push({
-            name: response[x].name,
-            prise: response[x].prise,
-            category: response[x].category,
-            company: response[x].company,
-            userId: userId,
-          });
-        }
-        await Product.insertMany(userData);
-      });
-    res.send({ status: 200, success: true, msg: "Csv Imported" });
-  } catch {}
-});
+app.post(
+  "/import",
+  authenticateToken,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const userId = req.user._id;
+      const userData = [];
+      csv()
+        .fromFile(req.file.path)
+        .then(async (response) => {
+          for (let x = 0; x < response.length; x++) {
+            userData.push({
+              name: response[x].name,
+              prise: response[x].prise,
+              category: response[x].category,
+              company: response[x].company,
+              userId: userId,
+            });
+          }
+          await Product.insertMany(userData);
+        });
+      res.send({ status: 200, success: true, msg: "Csv Imported" });
+    } catch {}
+  }
+);
 
 app.get("/orderdetails", async (req, res) => {
   try {
@@ -393,6 +434,75 @@ app.get("/export", authenticateToken, async (req, res) => {
 //     return res.status(403).json({ error: "Token not provided" });
 //   }
 // }
+
+// Google OAuth routes
+app.get(
+  "/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: "/login",
+    successRedirect: CLIENT_URL,
+  }),
+  (req, res) => {
+    // On successful authentication, generate JWT and send it back
+    const token = jwt.sign({ user: req.user }, process.env.JWT_SECRET_KEY, {
+      expiresIn: "1h",
+    });
+    console.log(`User successfully logged in with Google: ${req.user.email}`);
+    res.json({ user: req.user, token });
+  }
+);
+
+// Google OAuth routes
+
+// app.get("login/failed", (req, res) => {
+//   res.status(401).json({
+//     success: false,
+//     message: "failure",
+//   });
+// });
+
+// function ensureAuthenticated(req, res, next) {
+//   if (req.isAuthenticated()) {
+//     return next();
+//   }
+//   res.status(401).json({
+//     success: false,
+//     message: "Not authenticated",
+//   });
+// }
+
+// app.get("/login/success", ensureAuthenticated, (req, res) => {
+//   if (req.user) {
+//     res.status(200).json({
+//       success: true,
+//       message: "successful",
+//       user: req.user,
+//     });
+//   } else {
+//     res.status(401).json({
+//       success: false,
+//       message: "Not authenticated",
+//     });
+//   }
+// });
+
+// app.get(
+//   "auth/google",
+//   passport.authenticate("google", { scope: ["profile", "email"] })
+// );
+
+// app.get(
+//   "auth/google/callback",
+//   passport.authenticate("google", {
+//     successRedirect: CLIENT_URL,
+//     failureRedirect: "/login/failed",
+//   })
+// );
 
 server.listen(5000, () => {
   console.log("Server is running on port 5000");
