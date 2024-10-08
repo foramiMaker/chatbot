@@ -17,10 +17,7 @@ const jwt = require("jsonwebtoken");
 const authenticateToken = require("./middleware/authenticateToken");
 const multer = require("multer");
 const path = require("path");
-const passport = require("./passport.js");
-const session = require("express-session");
-const cookieSession = require("cookie-session");
-require("./passport");
+const axios = require("axios");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -33,35 +30,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 // PORT = process.env || 5000;
 
-// Initialize express-session middleware
-// app.use(
-//   session({
-//     secret: process.env.SESSION_SECRET, // Use a secret key for session encryption
-//     resave: false, // Avoid resaving session if unmodified
-//     saveUninitialized: false, // Don't save empty sessions
-//     cookie: { secure: false }, // Set `secure: true` if using HTTPS
-//   })
-// );
-
-// app.use(
-//   cookieSession({
-//     name: "session",
-//     keys: ["chatbot"],
-//     maxAge: 24 * 60 * 60 * 100,
-//   })
-// );
-app.use(
-  session({
-    secret: "secret-key",
-    resave: false,
-    saveUninitialized: false,
-  })
-);
-
-// Initialize Passport and use session management
-app.use(passport.initialize());
-app.use(passport.session()); // This line is crucial for handling login sessions
-
 app.use(express.json());
 app.use(express.static(path.resolve(__dirname, "public")));
 app.use(
@@ -70,10 +38,6 @@ app.use(
     allowedHeaders: ["Authorization", "Content-Type"], // Allow authorization header
   })
 );
-// app.use(passport.initialize());
-// dotenv.config();
-
-const CLIENT_URL = "http://localhost:3000";
 
 const Razorpay = require("razorpay");
 
@@ -90,27 +54,63 @@ const io = socketIo(server, {
   },
 });
 // Middleware to authenticate token for Socket.IO connections
+// io.use((socket, next) => {
+//   const token = socket.handshake.auth.token;
+//   if (validateToken(token)) {
+//     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
+//       if (err) {
+//         return next(new Error("Authentication error: Invalid token"));
+//       }
+//       // socket.user = decoded.user; // Attach user data to the socket object
+//       // next();
+//       if (decoded && decoded.id) {
+//         socket.user = decoded; // Assign the decoded user object
+//         next();
+//       } else {
+//         next(new Error("Authentication error: User not found in token"));
+//       }
+//     });
+//   } else {
+//     next(new Error("Authentication error: Invalid token"));
+//   }
+// });
+
+//update code for both side work proper
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  if (validateToken(token)) {
+  if (token) {
     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
       if (err) {
         return next(new Error("Authentication error: Invalid token"));
       }
-      socket.user = decoded.user; // Attach user data to the socket object
-      next();
+      // Handle both local and social authentication
+      socket.user = decoded.user ? decoded.user : decoded; // Extract user from payload or assign decoded directly
+      if (socket.user && socket.user.id) {
+        next(); // User is authenticated
+      } else {
+        next(new Error("Authentication error: User not found in token"));
+      }
     });
   } else {
-    next(new Error("Authentication error: Invalid token"));
+    next(new Error("Authentication error: Token not provided"));
   }
 });
+
 // Socket.IO connection logic
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.user.email}`); // Now you have access to user data
   // Send the username to the connected client
-  socket.emit("userDetails", {
-    username: socket.user.name || socket.user.email,
-  });
+  // socket.emit("userDetails", {
+  //   username: socket.user.name || socket.user.email,
+  // });
+  if (socket.user && socket.user.email) {
+    console.log(`User connected: ${socket.user.email}`);
+    socket.emit("userDetails", {
+      username: socket.user.name || socket.user.email,
+    });
+  } else {
+    console.error("User data is incomplete or missing.");
+  }
   // Listen for messages from the client
   socket.on("message", (message) => {
     console.log("Received query:", message);
@@ -231,7 +231,7 @@ app.post("/booking", authenticateToken, async (req, res) => {
     }
 
     // Retrieve the authenticated user's ID from the JWT
-    const userId = req.user._id;
+    const userId = req.user._id || req.user.id;
 
     const booking = await Booking.create({
       name,
@@ -260,7 +260,7 @@ app.post("/addProduct", authenticateToken, async (req, res) => {
 // get product list
 app.get("/fetchproduct", authenticateToken, async (req, res) => {
   try {
-    const userId = req.user._id; // Extract user ID from the token
+    const userId = req.user._id || req.user.id; // Extract user ID from the token
     console.log("User ID from token:", userId);
     const product = await Product.find({ userId }); // Find products by logged-in user's ID
     console.log("Products found:", product); // Log found products
@@ -278,9 +278,13 @@ app.post("/login", async (req, res) => {
     if (req.body.password && req.body.email) {
       const user = await UserDetail.findOne(req.body).select("-password");
       if (user) {
-        const token = jwt.sign({ user }, process.env.JWT_SECRET_KEY, {
-          expiresIn: "1h",
-        });
+        const token = jwt.sign(
+          { id: user._id, email: user.email },
+          process.env.JWT_SECRET_KEY,
+          {
+            expiresIn: "1h",
+          }
+        );
         res.json({ user, token });
       } else {
         res.status(404).json({ result: "no user found" });
@@ -321,7 +325,7 @@ app.put("/product/:id", authenticateToken, async (req, res) => {
 
 //search product
 app.get("/search/:key", authenticateToken, async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user._id || req.user.id;
   const product = await Product.find({
     userId,
     $or: [
@@ -341,7 +345,7 @@ app.post(
   upload.single("file"),
   async (req, res) => {
     try {
-      const userId = req.user._id;
+      const userId = req.user._id || req.user.id;
       const userData = [];
       csv()
         .fromFile(req.file.path)
@@ -393,7 +397,7 @@ app.get("/orderdetails", async (req, res) => {
 //download product list api
 app.get("/export", authenticateToken, async (req, res) => {
   try {
-    const userId = req.user._id; // Get the user ID from the token
+    const userId = req.user._id || req.user.id; // Get the user ID from the token
     const products = [];
     const userData = await Product.find({ userId });
 
@@ -415,6 +419,7 @@ app.get("/export", authenticateToken, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 // function authenticateToken(req, res, next) {
 //   const token = req.headers["authorization"]?.split(" ")[1];
 //   // const token = req.headers["authorization"];
@@ -435,74 +440,102 @@ app.get("/export", authenticateToken, async (req, res) => {
 //   }
 // }
 
-// Google OAuth routes
-app.get(
-  "/auth/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
+//api for social authentication
 
-app.get(
-  "/auth/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: "/login",
-    successRedirect: CLIENT_URL,
-  }),
-  (req, res) => {
-    // On successful authentication, generate JWT and send it back
-    const token = jwt.sign({ user: req.user }, process.env.JWT_SECRET_KEY, {
-      expiresIn: "1h",
+app.get("/auth/google", (req, res) => {
+  const redirect_uri = "http://localhost:5000/auth/google/callback"; // Your redirect URI
+  const client_id = process.env.GOOGLE_CLIENT_ID; // Your Client ID
+  const scope =
+    "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code&scope=${scope}`;
+
+  res.redirect(authUrl);
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  const { code } = req.query;
+
+  const tokenUrl = "https://oauth2.googleapis.com/token";
+  const redirect_uri = "http://localhost:5000/auth/google/callback"; // Your redirect URI
+
+  const client_id = process.env.GOOGLE_CLIENT_ID; // Your Client ID
+  const client_secret = process.env.GOOGLE_CLIENT_SECRET; // Your Client Secret
+
+  try {
+    const response = await axios.post(tokenUrl, null, {
+      params: {
+        code,
+        client_id,
+        client_secret,
+        redirect_uri,
+        grant_type: "authorization_code",
+      },
     });
-    console.log(`User successfully logged in with Google: ${req.user.email}`);
-    res.json({ user: req.user, token });
+
+    const { access_token } = response.data;
+
+    // Fetch user info from Google
+    const userInfoResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    const userData = userInfoResponse.data;
+    console.log(userData); // { id, email, name, etc. }
+
+    // You can now create or find a user in your database and create a JWT token
+    const user = await UserDetail.findOne({ email: userData.email });
+
+    if (!user) {
+      // Create a new user if not exists
+      const newUser = await UserDetail.create({
+        name: userData.name,
+        email: userData.email,
+        // You can also store other fields you need
+      });
+
+      const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET_KEY, {
+        expiresIn: "1h",
+      });
+      return res.json({ user: newUser, token });
+    }
+
+    // User found, create a JWT token
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET_KEY,
+      {
+        expiresIn: "1h",
+      }
+    );
+    // res.json({ user, token });
+    // Inside your /auth/google/callback route after creating the token
+    res.redirect(
+      `http://localhost:3000/GoogleRedirect?token=${token}&user=${encodeURIComponent(
+        JSON.stringify(user)
+      )}`
+    );
+
+    console.log(
+      `Redirect URL: http://localhost:3000/GoogleRedirect?token=${token}&user=${encodeURIComponent(
+        JSON.stringify(user)
+      )}`
+    );
+    console.log("User before encoding:", user);
+    console.log(
+      "User after encoding:",
+      encodeURIComponent(JSON.stringify(user))
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
-);
-
-// Google OAuth routes
-
-// app.get("login/failed", (req, res) => {
-//   res.status(401).json({
-//     success: false,
-//     message: "failure",
-//   });
-// });
-
-// function ensureAuthenticated(req, res, next) {
-//   if (req.isAuthenticated()) {
-//     return next();
-//   }
-//   res.status(401).json({
-//     success: false,
-//     message: "Not authenticated",
-//   });
-// }
-
-// app.get("/login/success", ensureAuthenticated, (req, res) => {
-//   if (req.user) {
-//     res.status(200).json({
-//       success: true,
-//       message: "successful",
-//       user: req.user,
-//     });
-//   } else {
-//     res.status(401).json({
-//       success: false,
-//       message: "Not authenticated",
-//     });
-//   }
-// });
-
-// app.get(
-//   "auth/google",
-//   passport.authenticate("google", { scope: ["profile", "email"] })
-// );
-
-// app.get(
-//   "auth/google/callback",
-//   passport.authenticate("google", {
-//     successRedirect: CLIENT_URL,
-//     failureRedirect: "/login/failed",
-//   })
-// );
+});
 
 server.listen(5000, () => {
   console.log("Server is running on port 5000");

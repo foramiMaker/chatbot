@@ -27,7 +27,9 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const verified = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    req.user = verified.user; // Ensure this contains the correct _id
+    // req.user = verified.user; // Ensure this contains the correct _id
+    // Check if the token contains a user object or is itself the user data
+    req.user = verified.user ? verified.user : verified;
     next();
   } catch (error) {
     res.status(400).json({ error: "Invalid Token" });
