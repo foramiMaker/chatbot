@@ -47,11 +47,14 @@ function Signup() {
   };
 
   return (
-    <div className="Register-form">
+    <div
+      className="Register-form"
+      style={{ maxWidth: "400px", margin: "auto" }}
+    >
       <h1>Register</h1>
       <Form>
         <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
-          <Col sm="5">
+          <Col sm="10">
             <Form.Control
               type="text"
               placeholder="enter name"
@@ -63,7 +66,7 @@ function Signup() {
         </Form.Group>
 
         <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
-          <Col sm="5">
+          <Col sm="10">
             <Form.Control
               type="text"
               name="email"
@@ -75,7 +78,7 @@ function Signup() {
         </Form.Group>
 
         <Form.Group as={Row} className="mb-3" controlId="formPlaintextPassword">
-          <Col sm="5">
+          <Col sm="10">
             <Form.Control
               type="password"
               name="password"

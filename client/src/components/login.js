@@ -13,30 +13,14 @@ const Login = () => {
   });
 
   useEffect(() => {
-    const auth = localStorage.getItem("user");
-    if (auth) {
-      navigate("/");
+    // Check for token on mount
+    const token = localStorage.getItem("token");
+    if (token) {
+      const auth = localStorage.getItem("user");
+      if (auth) {
+        navigate("/");
+      }
     }
-
-    // Check if the user is authenticated after Google OAuth
-    // const checkUserLogin = async () => {
-    //   try {
-    //     const response = await axios.get(
-    //       "http://localhost:5000/login/success",
-    //       {
-    //         withCredentials: true, // Ensure cookies are sent for session-based auth
-    //       }
-    //     );
-    //     if (response.data.success) {
-    //       localStorage.setItem("user", JSON.stringify(response.data.user));
-    //       navigate("/"); // Redirect to homepage after successful login
-    //     }
-    //   } catch (error) {
-    //     console.error("User is not authenticated", error);
-    //   }
-    // };
-
-    // checkUserLogin();
   }, [navigate]);
 
   const handleChange = (e) =>
@@ -47,7 +31,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const result = await axios.post("http://localhost:5000/login", formdata);
-
+      console.log(result);
       if (result) {
         // console.log("login successfully", result);
         localStorage.setItem("user", JSON.stringify(result.data.user));
@@ -65,6 +49,7 @@ const Login = () => {
   // Redirect for social login (e.g., Google, Facebook)
   const handleGoogleLogin = () => {
     window.location.href = "http://localhost:5000/auth/google";
+    console.log("Current URL:", window.location.href);
   };
 
   return (
@@ -72,7 +57,7 @@ const Login = () => {
       <h1 className="text-center mb-4">Login</h1>
       <Form onSubmit={handleLogin}>
         <Form.Group as={Row} className="mb-3" controlId="formPlaintextEmail">
-          <Col sm="5">
+          <Col sm="10">
             <Form.Control
               type="text"
               name="email"
@@ -84,7 +69,7 @@ const Login = () => {
         </Form.Group>
 
         <Form.Group as={Row} className="mb-3" controlId="formPlaintextPassword">
-          <Col sm="5">
+          <Col sm="10">
             <Form.Control
               type="password"
               name="password"
@@ -97,6 +82,8 @@ const Login = () => {
         <Button
           variant="primary"
           type="submit"
+          className=""
+          style={{ width: "150px", marginLeft: "30%" }}
           // onClick={handleLogin}
         >
           Login

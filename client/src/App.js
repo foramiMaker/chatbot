@@ -8,6 +8,7 @@ import Login from "./components/login";
 import AddProduct from "./components/AddProduct";
 import ProductList from "./components/productList";
 import UpdateProduct from "./components/updateProduct";
+import GoogleRedirect from "./components/GoogleRedirect";
 
 function App() {
   return (
@@ -16,15 +17,16 @@ function App() {
         <Nav />
         <Routes>
           <Route element={<PrivateComponent />}>
-            <Route path="/" element={<ProductList/>} />
+            <Route path="/" element={<ProductList />} />
             <Route path="/add" element={<AddProduct />} />
-            <Route path="/update/:id" element={<UpdateProduct/>} />
+            <Route path="/update/:id" element={<UpdateProduct />} />
             <Route path="/logout" element={<h1>logout Product component</h1>} />
             <Route
               path="/profile"
               element={<h1>profile Product component</h1>}
             />
           </Route>
+          <Route path="/GoogleRedirect" element={<GoogleRedirect />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
         </Routes>

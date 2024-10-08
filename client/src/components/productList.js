@@ -50,8 +50,7 @@ const ProductList = () => {
     formData.append("file", csvFile);
 
     try {
-      
-      const token = localStorage.getItem("token"); 
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         "http://localhost:5000/import",
         formData,
@@ -146,6 +145,8 @@ const ProductList = () => {
 
   const getProduct = async () => {
     try {
+      const Token = localStorage.getItem("token");
+      console.log("Fetching products with token:", Token);
       const response = await axios.get("http://localhost:5000/fetchproduct", {
         headers: {
           Authorization: `Bearer ${Token}`, // Assuming it's a Bearer token
